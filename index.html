@@ -1,0 +1,568 @@
+<!DOCTYPE html>
+<html lang="de">
+<head>
+<meta charset="UTF-8"/>
+<meta name="viewport" content="width=device-width, initial-scale=1.0"/>
+<title>Schichtplan</title>
+<style>
+*{box-sizing:border-box;margin:0;padding:0;}
+body{font-family:-apple-system,BlinkMacSystemFont,'Segoe UI',sans-serif;background:#f5f5f0;color:#1a1a1a;min-height:100vh;}
+.app{max-width:960px;margin:0 auto;padding:1rem;}
+.toolbar{display:flex;align-items:center;gap:10px;margin-bottom:1.25rem;flex-wrap:wrap;background:#fff;border-radius:12px;padding:12px 16px;border:1px solid #e5e5e0;}
+.toolbar h1{font-size:17px;font-weight:600;flex:1;min-width:120px;}
+.lang-btns{display:flex;gap:4px;}
+.lang-btn{padding:4px 11px;border:1px solid #ddd;border-radius:20px;font-size:12px;background:#fff;color:#666;cursor:pointer;font-family:inherit;}
+.lang-btn.active{background:#185FA5;color:#fff;border-color:#185FA5;font-weight:500;}
+.btn{padding:6px 13px;border:1px solid #ddd;border-radius:8px;background:#fff;color:#1a1a1a;font-size:13px;cursor:pointer;font-family:inherit;}
+.btn:hover{background:#f5f5f0;}
+.btn.primary{background:#185FA5;color:#fff;border-color:#185FA5;}
+.btn.primary:hover{background:#0C447C;}
+.lock-btn{padding:5px 12px;border:1px solid #ddd;border-radius:20px;font-size:12px;cursor:pointer;font-family:inherit;display:flex;align-items:center;gap:5px;}
+.lock-btn.locked{background:#fff;color:#666;}
+.lock-btn.unlocked{background:#0F6E56;color:#fff;border-color:#0F6E56;}
+.tab-row{display:flex;gap:2px;margin-bottom:1.25rem;border-bottom:1px solid #e5e5e0;background:#fff;border-radius:12px 12px 0 0;padding:0 12px;}
+.tab{padding:10px 15px;font-size:13px;cursor:pointer;border:none;background:none;color:#888;font-family:inherit;border-bottom:2px solid transparent;margin-bottom:-1px;}
+.tab.active{color:#1a1a1a;border-bottom-color:#185FA5;font-weight:500;}
+.panel{background:#fff;border-radius:0 0 12px 12px;padding:1rem;border:1px solid #e5e5e0;border-top:none;}
+.nav-row{display:flex;align-items:center;gap:10px;margin-bottom:1rem;}
+.nav-row span{font-size:14px;font-weight:500;min-width:200px;text-align:center;}
+.grid-wrap{border:1px solid #e5e5e0;border-radius:10px;overflow:auto;}
+.grid-wrap table{width:100%;border-collapse:collapse;table-layout:fixed;min-width:680px;}
+.grid-wrap th{font-size:10px;font-weight:500;color:#888;padding:7px 3px;text-align:center;border-bottom:1px solid #e5e5e0;background:#f9f9f7;}
+.grid-wrap th:first-child{text-align:left;padding-left:12px;width:95px;}
+.grid-wrap td{padding:5px 3px;text-align:center;border-bottom:1px solid #f0f0ec;}
+.grid-wrap td:first-child{text-align:left;padding-left:12px;font-size:13px;font-weight:500;}
+.grid-wrap tr:last-child td{border-bottom:none;}
+.sb{display:inline-block;padding:3px 8px;border-radius:20px;font-size:10px;font-weight:500;min-width:38px;white-space:nowrap;}
+.sb.clickable{cursor:pointer;}
+.sb.clickable:hover{opacity:0.8;}
+.sb-F{background:#dbeafe;color:#1e40af;}
+.sb-S{background:#fef3c7;color:#92400e;}
+.sb-N{background:#ede9fe;color:#4c1d95;}
+.sb-O{background:#f0fdf4;color:#166534;}
+.sb-K{background:#fee2e2;color:#991b1b;}
+.sb-U{background:#dcfce7;color:#14532d;}
+.today-col{background:#eff6ff;}
+.modal-bg{display:none;position:fixed;inset:0;background:rgba(0,0,0,0.4);z-index:100;align-items:center;justify-content:center;}
+.modal-bg.open{display:flex;}
+.modal{background:#fff;border-radius:14px;padding:1.5rem;min-width:280px;max-width:94vw;box-shadow:0 20px 60px rgba(0,0,0,0.2);}
+.modal h3{font-size:15px;font-weight:600;margin-bottom:1rem;}
+.shift-opts{display:flex;flex-wrap:wrap;gap:8px;margin-bottom:1rem;}
+.sopt{padding:7px 16px;border-radius:20px;border:1.5px solid #e5e5e0;font-size:13px;cursor:pointer;font-family:inherit;background:#fff;}
+.sopt:hover{border-color:#aaa;}
+.sopt.active{border-color:#185FA5;background:#dbeafe;color:#1e40af;}
+.stats{display:grid;grid-template-columns:repeat(auto-fit,minmax(85px,1fr));gap:8px;margin-bottom:1.5rem;}
+.sc{background:#f9f9f7;border-radius:8px;padding:0.75rem;border:1px solid #e5e5e0;}
+.sc .lbl{font-size:11px;color:#888;margin-bottom:4px;}
+.sc .val{font-size:22px;font-weight:600;}
+.slabel{font-size:11px;color:#888;font-weight:500;margin-bottom:8px;text-transform:uppercase;letter-spacing:.05em;}
+.worker-list{border:1px solid #e5e5e0;border-radius:10px;overflow:hidden;}
+.wrow{display:flex;align-items:center;gap:10px;padding:9px 12px;border-bottom:1px solid #f0f0ec;}
+.wrow:last-child{border-bottom:none;}
+.wrow input[type=text]{border:1px solid #ddd;border-radius:7px;padding:5px 9px;font-family:inherit;font-size:13px;background:#fff;width:130px;}
+.wdot{width:9px;height:9px;border-radius:50%;flex-shrink:0;}
+.rmb{margin-left:auto;color:#bbb;background:none;border:none;cursor:pointer;font-size:18px;line-height:1;}
+.rmb:hover{color:#e24b4a;}
+.addrow{padding:9px 12px;font-size:13px;color:#888;cursor:pointer;display:flex;align-items:center;gap:6px;border-top:1px solid #e5e5e0;}
+.addrow:hover{background:#f9f9f7;}
+.note{font-size:12px;color:#aaa;margin-top:8px;}
+.inactive-lbl{font-size:10px;background:#fee2e2;color:#991b1b;padding:2px 7px;border-radius:20px;margin-left:5px;font-weight:400;}
+.pw-box{display:flex;gap:8px;align-items:center;flex-wrap:wrap;}
+.pw-box input{border:1px solid #ddd;border-radius:7px;padding:6px 10px;font-family:inherit;font-size:14px;width:160px;}
+.pw-error{font-size:12px;color:#e24b4a;margin-top:6px;}
+.saving{font-size:12px;color:#888;margin-left:8px;}
+</style>
+</head>
+<body>
+<div class="app">
+  <div class="toolbar">
+    <h1 id="app-title">Schichtplan</h1>
+    <div class="lang-btns">
+      <button class="lang-btn active" onclick="setLang('de')">DE</button>
+      <button class="lang-btn" onclick="setLang('pl')">PL</button>
+      <button class="lang-btn" onclick="setLang('en')">EN</button>
+    </div>
+    <button class="lock-btn locked" id="lock-btn" onclick="toggleLock()">
+      <span id="lock-icon">🔒</span><span id="lock-label">Anmelden</span>
+    </button>
+    <button class="btn" onclick="exportCSV()" id="btn-export">CSV</button>
+  </div>
+
+  <div class="tab-row">
+    <button class="tab active" onclick="switchTab('plan')" id="tab-plan-btn">Wochenplan</button>
+    <button class="tab" onclick="switchTab('stats')" id="tab-stats-btn">Statistik</button>
+    <button class="tab" onclick="switchTab('team')" id="tab-team-btn">Team</button>
+  </div>
+
+  <div class="panel">
+    <div id="tab-plan">
+      <div class="nav-row">
+        <button class="btn" onclick="changeWeek(-1)">&#8592;</button>
+        <span id="week-label"></span>
+        <button class="btn" onclick="changeWeek(1)">&#8594;</button>
+        <button class="btn" onclick="goToday()" id="btn-today">Heute</button>
+        <span class="saving" id="saving-indicator"></span>
+      </div>
+      <div class="grid-wrap"><table id="plan-table"></table></div>
+      <p class="note" id="note-click"></p>
+    </div>
+
+    <div id="tab-stats" style="display:none;">
+      <div class="slabel" id="lbl-month"></div>
+      <div class="stats" id="stats-grid"></div>
+      <div class="slabel" id="lbl-per-worker"></div>
+      <div class="grid-wrap" style="margin-top:8px;"><table id="stats-table"></table></div>
+    </div>
+
+    <div id="tab-team" style="display:none;">
+      <div class="slabel" id="lbl-workers"></div>
+      <div class="worker-list" id="worker-list"></div>
+      <div style="margin-top:1.5rem;" class="slabel" id="lbl-pattern"></div>
+      <div class="grid-wrap" style="margin-top:8px;"><table id="pattern-table"></table></div>
+    </div>
+  </div>
+</div>
+
+<!-- Edit shift modal -->
+<div class="modal-bg" id="modal">
+  <div class="modal">
+    <h3 id="modal-title"></h3>
+    <div class="shift-opts" id="modal-opts"></div>
+    <div style="display:flex;gap:8px;justify-content:flex-end;">
+      <button class="btn" onclick="closeModal()" id="btn-cancel">Abbrechen</button>
+      <button class="btn primary" onclick="saveShift()" id="btn-save">Speichern</button>
+    </div>
+  </div>
+</div>
+
+<!-- Password modal -->
+<div class="modal-bg" id="pw-modal">
+  <div class="modal">
+    <h3 id="pw-title">Passwort eingeben</h3>
+    <div class="pw-box">
+      <input type="password" id="pw-input" placeholder="Code..." onkeydown="if(event.key==='Enter')checkPw()"/>
+      <button class="btn primary" onclick="checkPw()" id="pw-btn">OK</button>
+    </div>
+    <div class="pw-error" id="pw-error"></div>
+    <div style="margin-top:12px;text-align:right;">
+      <button class="btn" onclick="closePwModal()">Abbrechen</button>
+    </div>
+  </div>
+</div>
+
+<!-- Firebase SDK -->
+<script type="module">
+import { initializeApp } from "https://www.gstatic.com/firebasejs/10.12.0/firebase-app.js";
+import { getFirestore, doc, getDoc, setDoc, onSnapshot } from "https://www.gstatic.com/firebasejs/10.12.0/firebase-firestore.js";
+
+const firebaseConfig = {
+  apiKey: "AIzaSyDZZUpW0mCI0cr9gMgA2yCWaS2udd44ABA",
+  authDomain: "schichtplan-882bf.firebaseapp.com",
+  projectId: "schichtplan-882bf",
+  storageBucket: "schichtplan-882bf.firebasestorage.app",
+  messagingSenderId: "696755354036",
+  appId: "1:696755354036:web:a36001663d5b296cd01ae1"
+};
+
+const fbApp = initializeApp(firebaseConfig);
+const db = getFirestore(fbApp);
+
+const PASSWORD = "phl-grafik";
+
+// ── i18n ──────────────────────────────────────────────────────────────────────
+const I18N = {
+  de:{title:'Schichtplan',tabPlan:'Wochenplan',tabStats:'Statistik',tabTeam:'Team',
+    export:'CSV',today:'Heute',cancel:'Abbrechen',save:'Speichern',login:'Anmelden',logout:'Abmelden',
+    lblMonth:'Nächste 30 Tage',lblPerWorker:'Schichten pro Mitarbeiter (30 Tage)',
+    lblWorkers:'Mitarbeiter',lblPattern:'Schichtmuster diese Woche',
+    noteClick:'Klicken Sie auf eine Schicht um sie zu bearbeiten.',
+    noteReadonly:'Nur-Lese-Modus. Anmelden zum Bearbeiten.',
+    addWorker:'Mitarbeiter hinzufügen',inactive:'inaktiv',pwTitle:'Passwort eingeben',pwError:'Falsches Passwort',
+    shiftNames:{F:'Früh',S:'Spät',N:'Nacht',O:'Frei',K:'Krank',U:'Urlaub'},
+    days:['Mo','Di','Mi','Do','Fr','Sa','So'],
+    statCols:['Mitarbeiter','Früh','Spät','Nacht','Krank','Urlaub','Frei'],
+    statLabels:{F:'Frühschicht',S:'Spätschicht',N:'Nachtschicht',O:'Freitage',K:'Krank',U:'Urlaub'},
+  },
+  pl:{title:'Grafik pracy',tabPlan:'Plan tygodnia',tabStats:'Statystyki',tabTeam:'Zespół',
+    export:'CSV',today:'Dziś',cancel:'Anuluj',save:'Zapisz',login:'Zaloguj',logout:'Wyloguj',
+    lblMonth:'Następne 30 dni',lblPerWorker:'Zmiany na pracownika (30 dni)',
+    lblWorkers:'Pracownicy',lblPattern:'Schemat zmian w tym tygodniu',
+    noteClick:'Kliknij na zmianę, aby ją edytować.',
+    noteReadonly:'Tryb tylko do odczytu. Zaloguj się, aby edytować.',
+    addWorker:'Dodaj pracownika',inactive:'nieaktywny',pwTitle:'Wprowadź hasło',pwError:'Błędne hasło',
+    shiftNames:{F:'Ranna',S:'Popołudniowa',N:'Nocna',O:'Wolne',K:'Chory',U:'Urlop'},
+    days:['Pon','Wt','Śr','Czw','Pt','Sob','Nd'],
+    statCols:['Pracownik','Ranna','Popołud.','Nocna','Chory','Urlop','Wolne'],
+    statLabels:{F:'Ranna',S:'Popołudniowa',N:'Nocna',O:'Wolne',K:'Chory',U:'Urlop'},
+  },
+  en:{title:'Work Schedule',tabPlan:'Weekly plan',tabStats:'Statistics',tabTeam:'Team',
+    export:'CSV',today:'Today',cancel:'Cancel',save:'Save',login:'Login',logout:'Logout',
+    lblMonth:'Next 30 days',lblPerWorker:'Shifts per employee (30 days)',
+    lblWorkers:'Employees',lblPattern:'Shift pattern this week',
+    noteClick:'Click on any shift to edit it.',
+    noteReadonly:'Read-only mode. Login to edit.',
+    addWorker:'Add employee',inactive:'inactive',pwTitle:'Enter password',pwError:'Wrong password',
+    shiftNames:{F:'Morning',S:'Afternoon',N:'Night',O:'Day off',K:'Sick',U:'Vacation'},
+    days:['Mon','Tue','Wed','Thu','Fri','Sat','Sun'],
+    statCols:['Employee','Morning','Afternoon','Night','Sick','Vacation','Off'],
+    statLabels:{F:'Morning',S:'Afternoon',N:'Night',O:'Day off',K:'Sick',U:'Vacation'},
+  }
+};
+
+// ── State ─────────────────────────────────────────────────────────────────────
+const CYCLE = ['F','F','S','S','N','N','O','O'];
+const ANCHOR = new Date(2026,3,22); ANCHOR.setHours(0,0,0,0);
+const COLORS = ['#888780','#D85A30','#378ADD','#D4537E','#1D9E75'];
+
+let lang = 'de';
+let isAdmin = false;
+let activeTab = 'plan';
+let modalCtx = null, selectedShift = null;
+
+let workers = [
+  {name:'Bartek', cyclePos:0, active:false},
+  {name:'Arek',   cyclePos:3, active:true},
+  {name:'Max',    cyclePos:1, active:true},
+  {name:'Alex',   cyclePos:7, active:true},
+  {name:'Dawid',  cyclePos:5, active:true},
+];
+let overrides = {};
+
+function getToday(){ const d=new Date(); d.setHours(0,0,0,0); return d; }
+let currentWeekStart = getMonday(getToday());
+
+// ── Firebase sync ─────────────────────────────────────────────────────────────
+const docRef = doc(db, 'schedule', 'main');
+
+async function loadFromFirebase() {
+  try {
+    const snap = await getDoc(docRef);
+    if (snap.exists()) {
+      const data = snap.data();
+      if (data.overrides) overrides = data.overrides;
+      if (data.workers) workers = data.workers;
+    }
+  } catch(e) { console.warn('Load error', e); }
+  renderAll();
+}
+
+async function saveToFirebase() {
+  const ind = document.getElementById('saving-indicator');
+  if(ind) ind.textContent = '💾 ...';
+  try {
+    await setDoc(docRef, { workers, overrides });
+    if(ind) ind.textContent = '✓';
+    setTimeout(()=>{ if(ind) ind.textContent=''; }, 2000);
+  } catch(e) {
+    if(ind) ind.textContent = '⚠️ Fehler';
+    console.warn('Save error', e);
+  }
+}
+
+// Real-time listener — all users see changes instantly
+onSnapshot(docRef, (snap) => {
+  if (snap.exists()) {
+    const data = snap.data();
+    if (data.overrides) overrides = data.overrides;
+    if (data.workers) workers = data.workers;
+    renderAll();
+  }
+});
+
+// ── Shift logic ───────────────────────────────────────────────────────────────
+function daysDiff(a, b){
+  const da=new Date(a); da.setHours(0,0,0,0);
+  const db=new Date(b); db.setHours(0,0,0,0);
+  return Math.round((da-db)/86400000);
+}
+
+function getShift(wi, date){
+  const key = wkey(wi, date);
+  if (overrides[key]) return overrides[key];
+  const w = workers[wi];
+  if (!w.active) return 'K';
+  const delta = daysDiff(date, ANCHOR);
+  const pos = ((w.cyclePos + delta) % 8 + 8) % 8;
+  return CYCLE[pos];
+}
+
+function wkey(wi, d){
+  const dt = new Date(d);
+  return `${wi}_${dt.getFullYear()}_${dt.getMonth()}_${dt.getDate()}`;
+}
+
+function getMonday(d){
+  const dt=new Date(d); dt.setHours(0,0,0,0);
+  const day=dt.getDay();
+  dt.setDate(dt.getDate()+(day===0?-6:1-day));
+  return dt;
+}
+function addDays(d,n){ const r=new Date(d); r.setDate(r.getDate()+n); return r; }
+function fmtDate(d){ return d.toLocaleDateString('de-DE',{day:'2-digit',month:'2-digit'}); }
+function t(){ return I18N[lang]; }
+
+// ── Language ──────────────────────────────────────────────────────────────────
+window.setLang = function(l){
+  lang = l;
+  document.querySelectorAll('.lang-btn').forEach((b,i)=>b.classList.toggle('active',['de','pl','en'][i]===l));
+  applyI18N(); renderAll();
+};
+
+function applyI18N(){
+  const T = t();
+  document.getElementById('app-title').textContent = T.title;
+  document.getElementById('btn-export').textContent = T.export;
+  document.getElementById('btn-today').textContent = T.today;
+  document.getElementById('btn-cancel').textContent = T.cancel;
+  document.getElementById('btn-save').textContent = T.save;
+  document.getElementById('tab-plan-btn').textContent = T.tabPlan;
+  document.getElementById('tab-stats-btn').textContent = T.tabStats;
+  document.getElementById('tab-team-btn').textContent = T.tabTeam;
+  document.getElementById('lock-label').textContent = isAdmin ? T.logout : T.login;
+  document.getElementById('pw-title').textContent = T.pwTitle;
+}
+
+// ── Auth ──────────────────────────────────────────────────────────────────────
+window.toggleLock = function(){
+  if (isAdmin) {
+    isAdmin = false;
+    const btn = document.getElementById('lock-btn');
+    btn.className = 'lock-btn locked';
+    document.getElementById('lock-icon').textContent = '🔒';
+    document.getElementById('lock-label').textContent = t().login;
+    renderAll();
+  } else {
+    document.getElementById('pw-modal').classList.add('open');
+    document.getElementById('pw-input').value = '';
+    document.getElementById('pw-error').textContent = '';
+    setTimeout(()=>document.getElementById('pw-input').focus(), 100);
+  }
+};
+
+window.checkPw = function(){
+  const val = document.getElementById('pw-input').value;
+  if (val === PASSWORD) {
+    isAdmin = true;
+    const btn = document.getElementById('lock-btn');
+    btn.className = 'lock-btn unlocked';
+    document.getElementById('lock-icon').textContent = '✏️';
+    document.getElementById('lock-label').textContent = t().logout;
+    closePwModal();
+    renderAll();
+  } else {
+    document.getElementById('pw-error').textContent = t().pwError;
+  }
+};
+
+window.closePwModal = function(){
+  document.getElementById('pw-modal').classList.remove('open');
+};
+
+// ── Render ────────────────────────────────────────────────────────────────────
+function renderAll(){
+  if (activeTab==='plan') renderPlan();
+  else if (activeTab==='stats') renderStats();
+  else renderTeam();
+}
+
+function renderPlan(){
+  const today = getToday();
+  const days = Array.from({length:14}, (_,i) => addDays(currentWeekStart, i));
+  const T = t();
+  document.getElementById('week-label').textContent = fmtDate(days[0]) + ' – ' + fmtDate(days[13]);
+
+  const header = `<tr>
+    <th>${T.statCols[0]}</th>
+    ${days.map(d=>{
+      const isT = d.getTime()===today.getTime();
+      const di = d.getDay()===0?6:d.getDay()-1;
+      return `<th class="${isT?'today-col':''}">${T.days[di]}<br>${fmtDate(d)}</th>`;
+    }).join('')}
+  </tr>`;
+
+  const rows = workers.map((w,wi) => {
+    const color = COLORS[wi % COLORS.length];
+    const dot = `<span style="display:inline-block;width:8px;height:8px;border-radius:50%;background:${color};margin-right:6px;"></span>`;
+    const badge = !w.active ? `<span class="inactive-lbl">${T.inactive}</span>` : '';
+    const cells = days.map(d => {
+      const isT = d.getTime()===today.getTime();
+      const s = getShift(wi, d);
+      const clickable = isAdmin ? 'clickable' : '';
+      const onclick = isAdmin ? `onclick="openModal(${wi},${d.getTime()})"` : '';
+      return `<td class="${isT?'today-col':''}"><span class="sb sb-${s} ${clickable}" ${onclick}>${T.shiftNames[s]}</span></td>`;
+    }).join('');
+    return `<tr><td>${dot}${w.name}${badge}</td>${cells}</tr>`;
+  }).join('');
+
+  document.getElementById('plan-table').innerHTML = header + rows;
+  const nc = document.getElementById('note-click');
+  if (nc) nc.textContent = isAdmin ? T.noteClick : T.noteReadonly;
+}
+
+function renderStats(){
+  const T = t();
+  document.getElementById('lbl-month').textContent = T.lblMonth;
+  document.getElementById('lbl-per-worker').textContent = T.lblPerWorker;
+  const today = getToday();
+  const days30 = Array.from({length:30}, (_,i) => addDays(today, i));
+  const totals = {F:0,S:0,N:0,O:0,K:0,U:0};
+  workers.forEach((_,wi) => days30.forEach(d => { const s=getShift(wi,d); totals[s]=(totals[s]||0)+1; }));
+
+  document.getElementById('stats-grid').innerHTML = `
+    <div class="sc"><div class="lbl">${T.statLabels.F}</div><div class="val" style="color:#1e40af;">${totals.F}</div></div>
+    <div class="sc"><div class="lbl">${T.statLabels.S}</div><div class="val" style="color:#92400e;">${totals.S}</div></div>
+    <div class="sc"><div class="lbl">${T.statLabels.N}</div><div class="val" style="color:#4c1d95;">${totals.N}</div></div>
+    <div class="sc"><div class="lbl">${T.statLabels.K}</div><div class="val" style="color:#991b1b;">${totals.K||0}</div></div>
+    <div class="sc"><div class="lbl">${T.statLabels.U}</div><div class="val" style="color:#14532d;">${totals.U||0}</div></div>
+    <div class="sc"><div class="lbl">${T.statLabels.O}</div><div class="val" style="color:#555;">${totals.O}</div></div>
+  `;
+
+  const cols = T.statCols;
+  const thead = `<tr style="background:#f9f9f7;">
+    ${cols.map((c,i)=>`<th style="text-align:${i===0?'left':'center'};padding:7px ${i===0?'12px':'4px'};font-size:11px;color:#888;border-bottom:1px solid #e5e5e0;">${c}</th>`).join('')}
+  </tr>`;
+  const tbody = workers.map((w,wi) => {
+    const cnt = {F:0,S:0,N:0,K:0,U:0,O:0};
+    days30.forEach(d => { const s=getShift(wi,d); cnt[s]=(cnt[s]||0)+1; });
+    const last = wi===workers.length-1;
+    const bd = last ? '' : 'border-bottom:1px solid #f0f0ec;';
+    return `<tr>
+      <td style="text-align:left;padding:7px 12px;font-size:13px;font-weight:500;${bd}">${w.name}${!w.active?` <span style="font-size:10px;color:#991b1b;">(${T.inactive})</span>`:''}</td>
+      ${[cnt.F,cnt.S,cnt.N,cnt.K,cnt.U,cnt.O].map(v=>`<td style="text-align:center;font-size:13px;${bd}">${v}</td>`).join('')}
+    </tr>`;
+  }).join('');
+  document.getElementById('stats-table').innerHTML = thead + tbody;
+}
+
+function renderTeam(){
+  const T = t();
+  document.getElementById('lbl-workers').textContent = T.lblWorkers;
+  document.getElementById('lbl-pattern').textContent = T.lblPattern;
+
+  const list = document.getElementById('worker-list');
+  list.innerHTML = workers.map((w,wi) => {
+    const color = COLORS[wi % COLORS.length];
+    const editable = isAdmin;
+    return `<div class="wrow">
+      <div class="wdot" style="background:${color};"></div>
+      <input type="text" value="${w.name}" ${editable?`onchange="updateWorkerName(${wi},this.value)"`:'readonly'} style="${editable?'':'background:#f5f5f0;color:#888;'}" />
+      ${editable ? `<label style="font-size:12px;color:#888;display:flex;align-items:center;gap:5px;cursor:pointer;white-space:nowrap;">
+        <input type="checkbox" ${w.active?'checked':''} onchange="updateWorkerActive(${wi},this.checked)" style="width:auto;border:none;padding:0;" />
+        aktiv</label>
+        <button class="rmb" onclick="removeWorker(${wi})">×</button>` : ''}
+    </div>`;
+  }).join('') + (isAdmin ? `<div class="addrow" onclick="addWorker()">+ ${T.addWorker}</div>` : '');
+
+  const today = getToday();
+  const days7 = Array.from({length:7}, (_,i) => addDays(getMonday(today), i));
+  const thead = `<tr style="background:#f9f9f7;">
+    <th style="text-align:left;padding:7px 12px;font-size:11px;color:#888;border-bottom:1px solid #e5e5e0;">${T.statCols[0]}</th>
+    ${T.days.map(d=>`<th style="text-align:center;padding:7px 4px;font-size:11px;color:#888;border-bottom:1px solid #e5e5e0;">${d}</th>`).join('')}
+  </tr>`;
+  const tbody = workers.map((w,wi) => {
+    const last = wi===workers.length-1;
+    const bd = last ? '' : 'border-bottom:1px solid #f0f0ec;';
+    const cells = days7.map(d => {
+      const s = getShift(wi, d);
+      return `<td style="text-align:center;padding:5px 3px;${bd}"><span class="sb sb-${s}" style="font-size:10px;">${T.shiftNames[s]}</span></td>`;
+    }).join('');
+    return `<tr><td style="text-align:left;padding:7px 12px;font-size:13px;font-weight:500;${bd}">${w.name}</td>${cells}</tr>`;
+  }).join('');
+  document.getElementById('pattern-table').innerHTML = thead + tbody;
+}
+
+// ── Modal ─────────────────────────────────────────────────────────────────────
+window.openModal = function(wi, dateTs){
+  if (!isAdmin) return;
+  const d = new Date(dateTs);
+  const s = getShift(wi, d);
+  modalCtx = {wi, date:d}; selectedShift = s;
+  const T = t();
+  const di = d.getDay()===0?6:d.getDay()-1;
+  document.getElementById('modal-title').textContent = `${workers[wi].name} — ${T.days[di]}, ${fmtDate(d)}`;
+  document.getElementById('btn-cancel').textContent = T.cancel;
+  document.getElementById('btn-save').textContent = T.save;
+  document.getElementById('modal-opts').innerHTML = Object.entries(T.shiftNames).map(([k,v]) =>
+    `<button class="sopt ${k===s?'active':''}" onclick="selectShift('${k}')">${v}</button>`
+  ).join('');
+  document.getElementById('modal').classList.add('open');
+};
+
+window.selectShift = function(k){
+  selectedShift = k;
+  const T = t();
+  document.querySelectorAll('.sopt').forEach(el => {
+    const found = Object.entries(T.shiftNames).find(([,v]) => v===el.textContent.trim());
+    el.classList.toggle('active', found && found[0]===k);
+  });
+};
+
+window.saveShift = async function(){
+  if (!modalCtx || !selectedShift) return;
+  overrides[wkey(modalCtx.wi, modalCtx.date)] = selectedShift;
+  closeModal();
+  renderAll();
+  await saveToFirebase();
+};
+
+window.closeModal = function(){
+  document.getElementById('modal').classList.remove('open');
+  modalCtx = null; selectedShift = null;
+};
+
+// ── Team editing ──────────────────────────────────────────────────────────────
+window.updateWorkerName = async function(wi, name){
+  workers[wi].name = name;
+  renderAll();
+  await saveToFirebase();
+};
+
+window.updateWorkerActive = async function(wi, active){
+  workers[wi].active = active;
+  renderAll();
+  await saveToFirebase();
+};
+
+window.addWorker = async function(){
+  workers.push({name:'Neu', cyclePos:0, active:true});
+  renderAll();
+  await saveToFirebase();
+};
+
+window.removeWorker = async function(wi){
+  if (workers.length <= 1) return;
+  workers.splice(wi, 1);
+  renderAll();
+  await saveToFirebase();
+};
+
+// ── Navigation ────────────────────────────────────────────────────────────────
+window.changeWeek = function(dir){ currentWeekStart = addDays(currentWeekStart, dir*14); renderPlan(); };
+window.goToday = function(){ currentWeekStart = getMonday(getToday()); renderPlan(); };
+
+window.switchTab = function(tab){
+  activeTab = tab;
+  ['plan','stats','team'].forEach(t => { document.getElementById('tab-'+t).style.display = t===tab?'':'none'; });
+  ['plan-btn','stats-btn','team-btn'].forEach((id,i) => {
+    document.getElementById('tab-'+id).classList.toggle('active', ['plan','stats','team'][i]===tab);
+  });
+  renderAll();
+};
+
+window.exportCSV = function(){
+  const days = Array.from({length:14}, (_,i) => addDays(currentWeekStart, i));
+  const T = t();
+  const header = [T.statCols[0], ...days.map(d => fmtDate(d))].join(',');
+  const rows = workers.map((w,wi) => [w.name, ...days.map(d => T.shiftNames[getShift(wi,d)])].join(','));
+  const blob = new Blob([[header, ...rows].join('\n')], {type:'text/csv'});
+  const a = document.createElement('a');
+  a.href = URL.createObjectURL(blob); a.download = 'schichtplan.csv'; a.click();
+};
+
+// ── Init ──────────────────────────────────────────────────────────────────────
+applyI18N();
+loadFromFirebase();
+
+</script>
+</body>
+</html>
