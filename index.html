@@ -30,13 +30,15 @@ body{font-family:-apple-system,BlinkMacSystemFont,'Segoe UI',sans-serif;backgrou
 .week-label{font-size:12px;font-weight:500;text-align:center;flex:1;white-space:nowrap;overflow:hidden;text-overflow:ellipsis;}
 .saving{font-size:11px;color:#888;white-space:nowrap;}
 .grid-wrap{border:1px solid #e5e5e0;border-radius:10px;overflow:auto;-webkit-overflow-scrolling:touch;}
-.grid-wrap table{width:100%;border-collapse:collapse;table-layout:fixed;min-width:540px;}
+.grid-wrap table{width:100%;border-collapse:separate;border-spacing:0;table-layout:fixed;min-width:600px;}
 .grid-wrap th{font-size:9px;font-weight:500;color:#888;padding:6px 2px;text-align:center;border-bottom:1px solid #e5e5e0;background:#f9f9f7;}
-.grid-wrap th:first-child{text-align:left;padding-left:8px;width:76px;}
-.grid-wrap td{padding:4px 2px;text-align:center;border-bottom:1px solid #f0f0ec;}
-.grid-wrap td:first-child{text-align:left;padding-left:8px;font-size:12px;font-weight:500;}
+.grid-wrap th:first-child{text-align:left;padding-left:8px;width:84px;position:sticky;left:0;z-index:2;background:#f9f9f7;box-shadow:2px 0 4px rgba(0,0,0,0.06);}
+.grid-wrap td{padding:5px 2px;text-align:center;border-bottom:1px solid #f0f0ec;}
+.grid-wrap td:first-child{text-align:left;padding-left:8px;font-size:12px;font-weight:500;position:sticky;left:0;z-index:1;background:#fff;box-shadow:2px 0 4px rgba(0,0,0,0.06);}
+.grid-wrap tr:hover td:first-child{background:#f9f9f7;}
 .grid-wrap tr:last-child td{border-bottom:none;}
-.sb{display:inline-block;padding:2px 5px;border-radius:20px;font-size:9px;font-weight:500;min-width:30px;white-space:nowrap;}
+/* Shift badges — bigger for mobile readability */
+.sb{display:inline-block;padding:3px 7px;border-radius:20px;font-size:11px;font-weight:500;min-width:40px;white-space:nowrap;}
 .sb.clickable{cursor:pointer;}
 .sb.clickable:hover{opacity:.8;}
 .sb-F{background:#dbeafe;color:#1e40af;}
@@ -46,6 +48,8 @@ body{font-family:-apple-system,BlinkMacSystemFont,'Segoe UI',sans-serif;backgrou
 .sb-K{background:#fee2e2;color:#991b1b;}
 .sb-U{background:#dcfce7;color:#14532d;}
 .today-col{background:#eff6ff;}
+/* Team tab hidden in read-only mode */
+#tab-team-btn.admin-only{display:none;}
 .modal-bg{display:none;position:fixed;inset:0;background:rgba(0,0,0,0.4);z-index:100;align-items:center;justify-content:center;padding:1rem;}
 .modal-bg.open{display:flex;}
 .modal{background:#fff;border-radius:14px;padding:1.25rem;width:100%;max-width:360px;box-shadow:0 20px 60px rgba(0,0,0,0.2);max-height:92vh;overflow-y:auto;}
@@ -95,9 +99,14 @@ body{font-family:-apple-system,BlinkMacSystemFont,'Segoe UI',sans-serif;backgrou
 /* Copy select */
 .copy-select{width:100%;border:1px solid #ddd;border-radius:7px;padding:6px 9px;font-family:inherit;font-size:13px;margin-bottom:.75rem;background:#fff;}
 .divider{border:none;border-top:1px solid #f0f0ec;margin:.75rem 0;}
-@media(max-width:420px){
+@media(max-width:520px){
   .toolbar h1{font-size:14px;}
   .tab{padding:9px 9px;font-size:12px;}
+  .grid-wrap table{min-width:500px;}
+  .grid-wrap th:first-child{width:72px;}
+  .grid-wrap td:first-child{font-size:11px;}
+  .sb{font-size:11px;padding:3px 6px;min-width:38px;}
+  .week-label{font-size:11px;}
 }
 </style>
 </head>
@@ -120,7 +129,7 @@ body{font-family:-apple-system,BlinkMacSystemFont,'Segoe UI',sans-serif;backgrou
   <div class="tab-row">
     <button class="tab active" onclick="switchTab('plan')" id="tab-plan-btn">Wochenplan</button>
     <button class="tab" onclick="switchTab('stats')" id="tab-stats-btn">Statistik</button>
-    <button class="tab" onclick="switchTab('team')" id="tab-team-btn">Team</button>
+    <button class="tab admin-only" onclick="switchTab('team')" id="tab-team-btn">Team</button>
   </div>
 
   <div class="panel">
@@ -238,7 +247,8 @@ const I18N = {
     btnDoCopy:'Kopieren',lblCopyFrom:'Schicht von Mitarbeiter übernehmen',btnCopyFrom:'Übernehmen',
     shiftNames:{F:'Früh',S:'Spät',N:'Nacht',O:'Frei',K:'Krank',U:'Urlaub'},
     days:['Mo','Di','Mi','Do','Fr','Sa','So'],
-    statCols:['Mitarbeiter','Früh','Spät','Nacht','Krank','Urlaub','Frei'],
+    statCols:['Mitarbeiter','Früh','Spät','Nacht','Krank','Urlaub','Frei','So ☀️'],
+    statLabelSun:'Sonntags',
     statLabels:{F:'Frühschicht',S:'Spätschicht',N:'Nachtschicht',O:'Freitage',K:'Krank',U:'Urlaub'},
   },
   pl:{
@@ -258,7 +268,8 @@ const I18N = {
     btnDoCopy:'Kopiuj',lblCopyFrom:'Przejmij zmianę od pracownika',btnCopyFrom:'Przejmij',
     shiftNames:{F:'Ranna',S:'Popołudniowa',N:'Nocna',O:'Wolne',K:'Chory',U:'Urlop'},
     days:['Pon','Wt','Śr','Czw','Pt','Sob','Nd'],
-    statCols:['Pracownik','Ranna','Popołud.','Nocna','Chory','Urlop','Wolne'],
+    statCols:['Pracownik','Ranna','Popołud.','Nocna','Chory','Urlop','Wolne','Nd ☀️'],
+    statLabelSun:'Niedziele',
     statLabels:{F:'Ranna',S:'Popołudniowa',N:'Nocna',O:'Wolne',K:'Chory',U:'Urlop'},
   },
   en:{
@@ -278,7 +289,8 @@ const I18N = {
     btnDoCopy:'Copy',lblCopyFrom:'Copy shift from employee',btnCopyFrom:'Copy shift',
     shiftNames:{F:'Morning',S:'Afternoon',N:'Night',O:'Day off',K:'Sick',U:'Vacation'},
     days:['Mon','Tue','Wed','Thu','Fri','Sat','Sun'],
-    statCols:['Employee','Morning','Afternoon','Night','Sick','Vacation','Off'],
+    statCols:['Employee','Morning','Afternoon','Night','Sick','Vacation','Off','Sun ☀️'],
+    statLabelSun:'Sundays',
     statLabels:{F:'Morning',S:'Afternoon',N:'Night',O:'Day off',K:'Sick',U:'Vacation'},
   },
   ua:{
@@ -298,7 +310,8 @@ const I18N = {
     btnDoCopy:'Копіювати',lblCopyFrom:'Скопіювати зміну від працівника',btnCopyFrom:'Скопіювати',
     shiftNames:{F:'Ранкова',S:'Вечірня',N:'Нічна',O:'Вихідний',K:'Хворий',U:'Відпустка'},
     days:['Пн','Вт','Ср','Чт','Пт','Сб','Нд'],
-    statCols:['Працівник','Ранкова','Вечірня','Нічна','Хворий','Відпустка','Вихідний'],
+    statCols:['Працівник','Ранкова','Вечірня','Нічна','Хворий','Відпустка','Вихідний','Нд ☀️'],
+    statLabelSun:'Неділі',
     statLabels:{F:'Ранкова',S:'Вечірня',N:'Нічна',O:'Вихідні',K:'Хворий',U:'Відпустка'},
   }
 };
@@ -420,12 +433,24 @@ function applyI18N(){
 }
 
 // ── Auth ──────────────────────────────────────────────────────────────────────
+function updateTeamTabVisibility(){
+  const btn = document.getElementById('tab-team-btn');
+  if(isAdmin){
+    btn.classList.remove('admin-only');
+  } else {
+    btn.classList.add('admin-only');
+    // If currently on team tab, switch to plan
+    if(activeTab==='team') switchTab('plan');
+  }
+}
+
 window.toggleLock = function(){
   if(isAdmin){
     isAdmin=false;
     document.getElementById('lock-btn').className='lock-btn locked';
     document.getElementById('lock-icon').textContent='🔒';
     document.getElementById('lock-label').textContent=t().login;
+    updateTeamTabVisibility();
     renderAll();
   } else {
     document.getElementById('pw-modal').classList.add('open');
@@ -440,6 +465,7 @@ window.checkPw = function(){
     document.getElementById('lock-btn').className='lock-btn unlocked';
     document.getElementById('lock-icon').textContent='✏️';
     document.getElementById('lock-label').textContent=t().logout;
+    updateTeamTabVisibility();
     closePwModal(); renderAll();
   } else {
     document.getElementById('pw-error').textContent=t().pwError;
@@ -487,8 +513,12 @@ function renderStats(){
   document.getElementById('lbl-per-worker').textContent=T.lblPerWorker;
   const today=getToday();
   const days30=Array.from({length:30},(_,i)=>addDays(today,i));
+  const sundays=days30.filter(d=>d.getDay()===0); // getDay()==0 is Sunday
   const totals={F:0,S:0,N:0,O:0,K:0,U:0};
   workers.forEach((_,wi)=>days30.forEach(d=>{ const s=getShift(wi,d); totals[s]=(totals[s]||0)+1; }));
+  // Total sunday work shifts across all workers
+  let totalSunWork=0;
+  workers.forEach((_,wi)=>sundays.forEach(d=>{ const s=getShift(wi,d); if(s==='F'||s==='S'||s==='N') totalSunWork++; }));
   document.getElementById('stats-grid').innerHTML=`
     <div class="sc"><div class="lbl">${T.statLabels.F}</div><div class="val" style="color:#1e40af;">${totals.F}</div></div>
     <div class="sc"><div class="lbl">${T.statLabels.S}</div><div class="val" style="color:#92400e;">${totals.S}</div></div>
@@ -496,15 +526,22 @@ function renderStats(){
     <div class="sc"><div class="lbl">${T.statLabels.K}</div><div class="val" style="color:#991b1b;">${totals.K||0}</div></div>
     <div class="sc"><div class="lbl">${T.statLabels.U}</div><div class="val" style="color:#14532d;">${totals.U||0}</div></div>
     <div class="sc"><div class="lbl">${T.statLabels.O}</div><div class="val" style="color:#555;">${totals.O}</div></div>
+    <div class="sc"><div class="lbl">${T.statLabelSun}</div><div class="val" style="color:#b45309;">☀️ ${totalSunWork}</div></div>
   `;
   const cols=T.statCols;
-  const thead=`<tr style="background:#f9f9f7;">${cols.map((c,i)=>`<th style="text-align:${i===0?'left':'center'};padding:7px ${i===0?'10px':'4px'};font-size:11px;color:#888;border-bottom:1px solid #e5e5e0;">${c}</th>`).join('')}</tr>`;
+  const thead=`<tr style="background:#f9f9f7;">${cols.map((c,i)=>{
+    const isLast=i===cols.length-1;
+    const sunStyle=isLast?'background:#fffbeb;color:#b45309;':'color:#888;';
+    return `<th style="text-align:${i===0?'left':'center'};padding:7px ${i===0?'10px':'4px'};font-size:11px;${sunStyle}border-bottom:1px solid #e5e5e0;">${c}</th>`;
+  }).join('')}</tr>`;
   const tbody=workers.map((w,wi)=>{
-    const cnt={F:0,S:0,N:0,K:0,U:0,O:0};
+    const cnt={F:0,S:0,N:0,K:0,U:0,O:0,SUN:0};
     days30.forEach(d=>{ const s=getShift(wi,d); cnt[s]=(cnt[s]||0)+1; });
+    sundays.forEach(d=>{ const s=getShift(wi,d); if(s==='F'||s==='S'||s==='N') cnt.SUN++; });
     const last=wi===workers.length-1;
     const bd=last?'':'border-bottom:1px solid #f0f0ec;';
-    return `<tr><td style="text-align:left;padding:7px 10px;font-size:13px;font-weight:500;${bd}">${w.name}${!w.active?` <span style="font-size:10px;color:#991b1b;">(${T.inactive})</span>`:''}</td>${[cnt.F,cnt.S,cnt.N,cnt.K,cnt.U,cnt.O].map(v=>`<td style="text-align:center;font-size:13px;${bd}">${v}</td>`).join('')}</tr>`;
+    const sunCell=`<td style="text-align:center;font-size:13px;font-weight:600;color:#b45309;background:#fffbeb;${bd}">${cnt.SUN}</td>`;
+    return `<tr><td style="text-align:left;padding:7px 10px;font-size:13px;font-weight:500;${bd}">${w.name}${!w.active?` <span style="font-size:10px;color:#991b1b;">(${T.inactive})</span>`:''}</td>${[cnt.F,cnt.S,cnt.N,cnt.K,cnt.U,cnt.O].map(v=>`<td style="text-align:center;font-size:13px;${bd}">${v}</td>`).join('')}${sunCell}</tr>`;
   }).join('');
   document.getElementById('stats-table').innerHTML=thead+tbody;
 }
@@ -730,6 +767,7 @@ window.exportCSV = function(){
 
 // ── Init ──────────────────────────────────────────────────────────────────────
 applyI18N();
+updateTeamTabVisibility();
 loadFromFirebase();
 </script>
 </body>
