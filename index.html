@@ -98,6 +98,11 @@ body{font-family:-apple-system,BlinkMacSystemFont,'Segoe UI',sans-serif;backgrou
 .pattern-note{font-size:11px;color:#aaa;margin-top:5px;}
 /* Copy select */
 .copy-select{width:100%;border:1px solid #ddd;border-radius:7px;padding:6px 9px;font-family:inherit;font-size:13px;margin-bottom:.75rem;background:#fff;}
+.sunday-col{background:#fdf4ff;}
+.sunday-col-hd{background:#f5e6ff;}
+.cal-btn{padding:6px 10px;border:1px solid #ddd;border-radius:8px;background:#fff;font-size:15px;cursor:pointer;line-height:1;}
+.cal-btn:hover{background:#f5f5f0;}
+#date-picker-input{position:absolute;opacity:0;pointer-events:none;width:0;height:0;}
 .divider{border:none;border-top:1px solid #f0f0ec;margin:.75rem 0;}
 @media(max-width:600px){
   .toolbar h1{font-size:14px;}
@@ -142,6 +147,10 @@ body{font-family:-apple-system,BlinkMacSystemFont,'Segoe UI',sans-serif;backgrou
         <span class="week-label" id="week-label"></span>
         <button class="btn" onclick="changeWeek(1)">&#8594;</button>
         <button class="btn" onclick="goToday()" id="btn-today">Heute</button>
+        <div style="position:relative;display:inline-block;">
+          <button class="cal-btn" onclick="openDatePicker()" title="Datum wählen">📅</button>
+          <input type="date" id="date-picker-input" onchange="goToDate(this.value)"/>
+        </div>
         <span class="saving" id="saving-indicator"></span>
       </div>
       <div class="grid-wrap"><table id="plan-table"></table></div>
@@ -490,8 +499,10 @@ function renderPlan(){
   document.getElementById('week-label').textContent=fmtDate(days[0])+' – '+fmtDate(days[13]);
   const header=`<tr><th>${T.statCols[0]}</th>${days.map(d=>{
     const isT=d.getTime()===today.getTime();
-    const di=d.getDay()===0?6:d.getDay()-1;
-    return `<th class="${isT?'today-col':''}">${T.days[di]}<br>${fmtDate(d)}</th>`;
+    const isSun=d.getDay()===0;
+    const di=isSun?6:d.getDay()-1;
+    const cls=[isT?'today-col':'',isSun?'sunday-col-hd':''].filter(Boolean).join(' ');
+    return `<th class="${cls}">${T.days[di]}<br>${fmtDate(d)}${isSun?' ☀️':''}</th>`;
   }).join('')}</tr>`;
   const rows=workers.map((w,wi)=>{
     const color=COLORS[wi%COLORS.length];
@@ -499,10 +510,12 @@ function renderPlan(){
     const badge=!w.active?`<span class="inactive-lbl">${T.inactive}</span>`:'';
     const cells=days.map(d=>{
       const isT=d.getTime()===today.getTime();
+      const isSun=d.getDay()===0;
       const s=getShift(wi,d);
       const cl=isAdmin?'clickable':'';
       const oc=isAdmin?`onclick="openModal(${wi},${d.getTime()})"` :'';
-      return `<td class="${isT?'today-col':''}"><span class="sb sb-${s} ${cl}" ${oc}>${T.shiftNames[s]}</span></td>`;
+      const tdCls=[isT?'today-col':'',isSun?'sunday-col':''].filter(Boolean).join(' ');
+      return `<td class="${tdCls}"><span class="sb sb-${s} ${cl}" ${oc}>${T.shiftNames[s]}</span></td>`;
     }).join('');
     return `<tr><td>${dot}${w.name}${badge}</td>${cells}</tr>`;
   }).join('');
@@ -750,6 +763,22 @@ window.removeWorker = async function(wi){
 // ── Navigation ────────────────────────────────────────────────────────────────
 window.changeWeek = function(dir){ currentWeekStart=addDays(currentWeekStart,dir*14); renderPlan(); };
 window.goToday = function(){ currentWeekStart=getMonday(getToday()); renderPlan(); };
+window.openDatePicker = function(){
+  const inp=document.getElementById('date-picker-input');
+  // Set current value to today so picker opens near current date
+  const t=getToday();
+  inp.value=`${t.getFullYear()}-${String(t.getMonth()+1).padStart(2,'0')}-${String(t.getDate()).padStart(2,'0')}`;
+  inp.style.pointerEvents='auto';
+  inp.showPicker ? inp.showPicker() : inp.click();
+  inp.style.pointerEvents='none';
+};
+window.goToDate = function(val){
+  if(!val) return;
+  const [y,m,d]=val.split('-').map(Number);
+  const picked=new Date(y,m-1,d); picked.setHours(0,0,0,0);
+  currentWeekStart=getMonday(picked);
+  renderPlan();
+};
 window.switchTab = function(tab){
   activeTab=tab;
   ['plan','stats','team'].forEach(t=>{ document.getElementById('tab-'+t).style.display=t===tab?'':'none'; });
