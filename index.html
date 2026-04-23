@@ -74,21 +74,23 @@ body{font-family:-apple-system,BlinkMacSystemFont,'Segoe UI',sans-serif;backgrou
 .pw-box input{border:1px solid #ddd;border-radius:7px;padding:6px 10px;font-family:inherit;font-size:14px;flex:1;}
 .pw-error{font-size:12px;color:#e24b4a;margin-top:6px;}
 /* Pattern editor */
-.pattern-editor{border:1px solid #e5e5e0;border-radius:10px;overflow:hidden;margin-top:8px;}
-.pe-head{display:flex;align-items:center;gap:4px;padding:5px 10px;background:#f9f9f7;border-bottom:1px solid #e5e5e0;}
-.pe-head-name{min-width:72px;font-size:10px;color:#888;}
-.pe-day-lbl{width:34px;text-align:center;font-size:9px;color:#888;}
-.pe-row{display:flex;align-items:center;gap:4px;padding:6px 10px;border-bottom:1px solid #f0f0ec;flex-wrap:wrap;}
-.pe-row:last-child{border-bottom:none;}
-.pe-name{font-size:12px;font-weight:500;min-width:72px;}
-.pe-days{display:flex;gap:4px;flex-wrap:wrap;}
-.pe-cell{width:34px;height:26px;border-radius:6px;font-size:9px;font-weight:600;display:flex;align-items:center;justify-content:center;border:1px solid transparent;}
+.pe-wrap{border:1px solid #e5e5e0;border-radius:10px;overflow:auto;margin-top:8px;-webkit-overflow-scrolling:touch;}
+.pe-wrap table{border-collapse:collapse;min-width:480px;}
+.pe-wrap th{font-size:9px;font-weight:500;color:#888;padding:6px 4px;text-align:center;background:#f9f9f7;border-bottom:1px solid #e5e5e0;white-space:nowrap;}
+.pe-wrap th:first-child{text-align:left;padding-left:10px;min-width:76px;}
+.pe-wrap td{padding:5px 4px;text-align:center;border-bottom:1px solid #f0f0ec;}
+.pe-wrap td:first-child{text-align:left;padding-left:10px;font-size:12px;font-weight:500;white-space:nowrap;}
+.pe-wrap tr:last-child td{border-bottom:none;}
+.pe-cell{display:inline-flex;align-items:center;justify-content:center;width:38px;height:26px;border-radius:6px;font-size:10px;font-weight:600;border:1.5px solid transparent;transition:transform .1s;}
 .pe-cell.editable{cursor:pointer;}
-.pe-cell.editable:hover{transform:scale(1.12);box-shadow:0 2px 6px rgba(0,0,0,0.12);}
+.pe-cell.editable:hover{transform:scale(1.1);box-shadow:0 2px 8px rgba(0,0,0,0.13);}
 .pe-cell-F{background:#dbeafe;color:#1e40af;}
 .pe-cell-S{background:#fef3c7;color:#92400e;}
 .pe-cell-N{background:#ede9fe;color:#4c1d95;}
 .pe-cell-O{background:#f0fdf4;color:#166534;}
+.pe-repeat{display:flex;align-items:center;gap:6px;padding:6px 10px;background:#fafaf8;border-top:1px dashed #e5e5e0;}
+.pe-repeat-arrow{font-size:13px;color:#bbb;}
+.pe-repeat-label{font-size:10px;color:#aaa;}
 .pattern-note{font-size:11px;color:#aaa;margin-top:5px;}
 /* Copy select */
 .copy-select{width:100%;border:1px solid #ddd;border-radius:7px;padding:6px 9px;font-family:inherit;font-size:13px;margin-bottom:.75rem;background:#fff;}
@@ -146,10 +148,9 @@ body{font-family:-apple-system,BlinkMacSystemFont,'Segoe UI',sans-serif;backgrou
       <div class="worker-list" id="worker-list"></div>
       <div style="margin-top:1.4rem;display:flex;align-items:baseline;justify-content:space-between;gap:6px;flex-wrap:wrap;">
         <div class="slabel" id="lbl-pattern" style="margin-bottom:0;"></div>
-        <span class="pattern-note" id="lbl-pattern-badge"></span>
       </div>
+      <p class="pattern-note" id="lbl-pattern-help" style="margin-top:4px;margin-bottom:8px;"></p>
       <div id="pattern-editor"></div>
-      <p class="pattern-note" id="lbl-pattern-help" style="margin-top:5px;"></p>
     </div>
   </div>
 </div>
@@ -224,8 +225,10 @@ const I18N = {
     title:'Schichtplan',tabPlan:'Wochenplan',tabStats:'Statistik',tabTeam:'Team',
     export:'CSV',today:'Heute',cancel:'Abbrechen',save:'Speichern',login:'Anmelden',logout:'Abmelden',
     lblMonth:'Nächste 30 Tage',lblPerWorker:'Schichten pro Mitarbeiter (30 Tage)',
-    lblWorkers:'Mitarbeiter',lblPattern:'Schichtmuster (Zyklus)',lblPatternBadge:'8-Tage-Zyklus',
-    lblPatternHelp:'Klicken Sie auf eine Zelle um die Schicht zu ändern (F→S→N→Frei). Der Zyklus wird automatisch für alle Wochen wiederholt.',
+    lblWorkers:'Mitarbeiter',lblPattern:'Schichtmuster (8-Tage-Zyklus)',
+    lblPatternHelp:'Klicken Sie auf eine Zelle, um die Schicht zu wechseln (F→S→N→Frei→F). Die kleinen Zahlen zeigen die Position im Zyklus. Der Zyklus wiederholt sich automatisch.',
+    lblPatternBadge:'↻ wiederholt sich alle 8 Tage',
+    lblFullCycle:'Vollständiger Zyklus',
     noteClick:'Klicken Sie auf eine Schicht um sie zu bearbeiten.',
     noteReadonly:'Nur-Lese-Modus. Anmelden zum Bearbeiten.',
     addWorker:'Mitarbeiter hinzufügen',inactive:'inaktiv',
@@ -242,8 +245,10 @@ const I18N = {
     title:'Grafik pracy',tabPlan:'Plan tygodnia',tabStats:'Statystyki',tabTeam:'Zespół',
     export:'CSV',today:'Dziś',cancel:'Anuluj',save:'Zapisz',login:'Zaloguj',logout:'Wyloguj',
     lblMonth:'Następne 30 dni',lblPerWorker:'Zmiany na pracownika (30 dni)',
-    lblWorkers:'Pracownicy',lblPattern:'Schemat zmian (cykl)',lblPatternBadge:'Cykl 8-dniowy',
-    lblPatternHelp:'Kliknij komórkę, aby zmienić zmianę (R→P→N→Wolne). Cykl jest automatycznie powtarzany.',
+    lblWorkers:'Pracownicy',lblPattern:'Schemat zmian (cykl 8-dniowy)',
+    lblPatternHelp:'Kliknij komórkę, aby zmienić zmianę (R→P→N→Wolne→R). Mała cyfra = pozycja w cyklu. Cykl powtarza się automatycznie.',
+    lblPatternBadge:'↻ powtarza się co 8 dni',
+    lblFullCycle:'Pełny cykl',
     noteClick:'Kliknij na zmianę, aby ją edytować.',
     noteReadonly:'Tryb tylko do odczytu. Zaloguj się, aby edytować.',
     addWorker:'Dodaj pracownika',inactive:'nieaktywny',
@@ -260,8 +265,10 @@ const I18N = {
     title:'Work Schedule',tabPlan:'Weekly plan',tabStats:'Statistics',tabTeam:'Team',
     export:'CSV',today:'Today',cancel:'Cancel',save:'Save',login:'Login',logout:'Logout',
     lblMonth:'Next 30 days',lblPerWorker:'Shifts per employee (30 days)',
-    lblWorkers:'Employees',lblPattern:'Shift pattern (cycle)',lblPatternBadge:'8-day cycle',
-    lblPatternHelp:'Click a cell to change the shift (M→A→N→Off). The cycle repeats automatically for all weeks.',
+    lblWorkers:'Employees',lblPattern:'Shift pattern (8-day cycle)',
+    lblPatternHelp:'Click a cell to change the shift (M→A→N→Off→M). Small number = position in cycle. The cycle repeats automatically.',
+    lblPatternBadge:'↻ repeats every 8 days',
+    lblFullCycle:'Full cycle',
     noteClick:'Click on any shift to edit it.',
     noteReadonly:'Read-only mode. Login to edit.',
     addWorker:'Add employee',inactive:'inactive',
@@ -278,8 +285,10 @@ const I18N = {
     title:'Графік роботи',tabPlan:'Тижневий план',tabStats:'Статистика',tabTeam:'Команда',
     export:'CSV',today:'Сьогодні',cancel:'Скасувати',save:'Зберегти',login:'Увійти',logout:'Вийти',
     lblMonth:'Наступні 30 днів',lblPerWorker:'Зміни на працівника (30 днів)',
-    lblWorkers:'Працівники',lblPattern:'Схема змін (цикл)',lblPatternBadge:'8-денний цикл',
-    lblPatternHelp:'Натисніть на комірку, щоб змінити зміну (Р→В→Н→Вих). Цикл повторюється автоматично.',
+    lblWorkers:'Працівники',lblPattern:'Схема змін (8-денний цикл)',
+    lblPatternHelp:'Натисніть на комірку, щоб змінити зміну (Р→В→Н→Вих→Р). Маленька цифра = позиція в циклі. Цикл повторюється автоматично.',
+    lblPatternBadge:'↻ повторюється кожні 8 днів',
+    lblFullCycle:'Повний цикл',
     noteClick:'Натисніть на зміну, щоб її редагувати.',
     noteReadonly:'Режим перегляду. Увійдіть для редагування.',
     addWorker:'Додати працівника',inactive:'неактивний',
@@ -504,7 +513,6 @@ function renderTeam(){
   const T=t();
   document.getElementById('lbl-workers').textContent=T.lblWorkers;
   document.getElementById('lbl-pattern').textContent=T.lblPattern;
-  document.getElementById('lbl-pattern-badge').textContent=T.lblPatternBadge;
   document.getElementById('lbl-pattern-help').textContent=isAdmin?T.lblPatternHelp:'';
 
   const list=document.getElementById('worker-list');
@@ -528,28 +536,79 @@ function renderTeam(){
 function renderPatternEditor(){
   const T=t();
   const editor=document.getElementById('pattern-editor');
-  const maxLen=Math.max(...workers.map(w=>(w.cycle||DEFAULT_CYCLE).length));
-  const headerNums=Array.from({length:maxLen},(_,i)=>`<div class="pe-day-lbl">${i+1}</div>`).join('');
-  const rows=workers.map((w,wi)=>{
+  const today=getToday();
+
+  // Show the next 8 days (= one full cycle) with real dates as column headers.
+  // Each cell corresponds to a specific position in that worker's 8-day cycle.
+  // Clicking a cell cycles through F→S→N→O and saves to Firebase.
+  const dates8=Array.from({length:8},(_,i)=>addDays(today,i));
+
+  const thead=`<tr>
+    <th style="text-align:left;padding-left:10px;min-width:76px;">${T.statCols[0]}</th>
+    ${dates8.map(d=>{
+      const di=d.getDay()===0?6:d.getDay()-1;
+      const isT=d.getTime()===today.getTime();
+      return `<th style="${isT?'background:#eff6ff;':''}">${T.days[di]}<br><span style="font-weight:400;color:#aaa;">${fmtDate(d)}</span></th>`;
+    }).join('')}
+  </tr>`;
+
+  const tbody=workers.map((w,wi)=>{
     const cycle=w.cycle||[...DEFAULT_CYCLE];
-    const cells=cycle.map((s,di)=>{
+    const cells=dates8.map(d=>{
+      const delta=daysDiff(d,ANCHOR);
+      const pos=((w.cyclePos+delta)%cycle.length+cycle.length)%cycle.length;
+      const s=cycle[pos];
+      const isT=d.getTime()===today.getTime();
       const edCls=isAdmin?'editable':'';
-      const oc=isAdmin?`onclick="cycleCellClick(${wi},${di})"` :'';
-      return `<div class="pe-cell pe-cell-${s} ${edCls}" ${oc} title="${T.shiftNames[s]}">${T.shiftNames[s].charAt(0)}</div>`;
+      const oc=isAdmin?`onclick="patternCellClick(${wi},${pos})"` :'';
+      return `<td style="${isT?'background:#eff6ff;':''}">
+        <div class="pe-cell pe-cell-${s} ${edCls}" ${oc} title="${T.shiftNames[s]} — ${T.lblPattern||'Zyklus'} ${pos+1}/8">
+          ${T.shiftNames[s].charAt(0)}
+          <span style="font-size:7px;color:inherit;opacity:.5;display:block;line-height:1;">${pos+1}</span>
+        </div>
+      </td>`;
     }).join('');
-    return `<div class="pe-row"><div class="pe-name">${w.name}</div><div class="pe-days">${cells}</div></div>`;
+    const last=wi===workers.length-1;
+    return `<tr style="${last?'':'border-bottom:1px solid #f0f0ec;'}">
+      <td>${w.name}${!w.active?`<span class="inactive-lbl">${T.inactive}</span>`:''}</td>
+      ${cells}
+    </tr>`;
   }).join('');
-  editor.innerHTML=`<div class="pattern-editor">
-    <div class="pe-head"><div class="pe-head-name"></div>${headerNums}</div>
-    ${rows}
-  </div>`;
+
+  // Full cycle mini-preview (all 8 positions numbered)
+  const cyclePreview=workers.map(w=>{
+    const cycle=w.cycle||DEFAULT_CYCLE;
+    return `<div style="display:flex;align-items:center;gap:3px;margin-bottom:5px;">
+      <span style="font-size:11px;color:#888;min-width:62px;flex-shrink:0;">${w.name}</span>
+      ${cycle.map((s,i)=>`
+        <div style="text-align:center;">
+          <div class="pe-cell pe-cell-${s}" style="width:26px;height:20px;font-size:9px;border-radius:4px;">${s}</div>
+          <div style="font-size:8px;color:#ccc;margin-top:1px;">${i+1}</div>
+        </div>`).join('')}
+      <span style="font-size:11px;color:#ccc;margin-left:2px;">↻</span>
+    </div>`;
+  }).join('');
+
+  editor.innerHTML=`
+    <div class="pe-wrap">
+      <table style="width:100%;">${thead}<tbody>${tbody}</tbody></table>
+      <div class="pe-repeat">
+        <span class="pe-repeat-arrow">↻</span>
+        <span class="pe-repeat-label">${T.lblPatternBadge}</span>
+      </div>
+    </div>
+    <div style="margin-top:10px;padding:10px 12px;background:#f9f9f7;border-radius:8px;border:1px solid #e5e5e0;overflow-x:auto;">
+      <div class="slabel" style="margin-bottom:8px;">${T.lblFullCycle}</div>
+      ${cyclePreview}
+    </div>
+  `;
 }
 
-window.cycleCellClick = async function(wi,di){
+window.patternCellClick = async function(wi,pos){
   if(!isAdmin) return;
   const cycle=[...(workers[wi].cycle||DEFAULT_CYCLE)];
   const order=['F','S','N','O'];
-  cycle[di]=order[(order.indexOf(cycle[di])+1)%order.length];
+  cycle[pos]=order[(order.indexOf(cycle[pos])+1)%order.length];
   workers[wi].cycle=cycle;
   renderPatternEditor();
   await saveToFirebase();
