@@ -147,10 +147,11 @@ body{font-family:-apple-system,BlinkMacSystemFont,'Segoe UI',sans-serif;backgrou
         <span class="week-label" id="week-label"></span>
         <button class="btn" onclick="changeWeek(1)">&#8594;</button>
         <button class="btn" onclick="goToday()" id="btn-today">Heute</button>
-        <div style="position:relative;display:inline-block;">
-          <button class="cal-btn" onclick="openDatePicker()" title="Datum wählen">📅</button>
-          <input type="date" id="date-picker-input" onchange="goToDate(this.value)"/>
-        </div>
+        <label style="position:relative;display:inline-block;cursor:pointer;" title="Datum wählen">
+          <span class="cal-btn" style="display:inline-block;">📅</span>
+          <input type="date" id="date-picker-input" onchange="goToDate(this.value)"
+            style="position:absolute;inset:0;opacity:0;width:100%;height:100%;cursor:pointer;"/>
+        </label>
         <span class="saving" id="saving-indicator"></span>
       </div>
       <div class="grid-wrap"><table id="plan-table"></table></div>
@@ -763,15 +764,7 @@ window.removeWorker = async function(wi){
 // ── Navigation ────────────────────────────────────────────────────────────────
 window.changeWeek = function(dir){ currentWeekStart=addDays(currentWeekStart,dir*14); renderPlan(); };
 window.goToday = function(){ currentWeekStart=getMonday(getToday()); renderPlan(); };
-window.openDatePicker = function(){
-  const inp=document.getElementById('date-picker-input');
-  // Set current value to today so picker opens near current date
-  const t=getToday();
-  inp.value=`${t.getFullYear()}-${String(t.getMonth()+1).padStart(2,'0')}-${String(t.getDate()).padStart(2,'0')}`;
-  inp.style.pointerEvents='auto';
-  inp.showPicker ? inp.showPicker() : inp.click();
-  inp.style.pointerEvents='none';
-};
+
 window.goToDate = function(val){
   if(!val) return;
   const [y,m,d]=val.split('-').map(Number);
